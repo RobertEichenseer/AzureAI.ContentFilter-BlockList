@@ -1,0 +1,285 @@
+@ACCOUNTNAME = << your Azure OpenAI service name. e.g.: AzureAI-948 >>
+
+@MODELDEPLOYMENTENDPOINT = << your Azure OpenAI service deplyoment endpoint. e.g.: https://switzerlandnorth.api.cognitive.microsoft.com/ >>
+
+@MODELDEPLOYMENT = << your Azure OpenAI model deployment name. e.g.: gpt-35-turbo >>
+
+@MODELAPIKEY = << your Azure OpenAI model deployment api key. >>
+
+@SUBSCRIPTIONID = << your Azure subscription id. e.g.: dmeoa45fe-b62b-4fb8-9b3b-democ55a3330 >>
+
+@RESOURCEGROUP = << your Azure resource group name. e.g.: AzureAI.ContentFilter >>
+
+@ACCESSTOKEN = << your Azure Management API access token >>
+
+@POLICYNAME = << your content filter name. e.g.: ContentFilterName948 >>
+
+@BLOCKLISTNAME = << your blocklist name. e.g.: BlocklistName948 >>
+
+@BLOCKLISTITEMNAME = << your blocklist item name. e.g.: BlocklistItemName948 >>
+
+
+### List Policies
+# @name listPolicies
+GET https://management.azure.com/subscriptions/{{SUBSCRIPTIONID}}/resourceGroups/{{RESOURCEGROUP}}/providers/Microsoft.CognitiveServices/accounts/{{ACCOUNTNAME}}/raiPolicies?api-version=2024-10-01
+Authorization: Bearer {{ACCESSTOKEN}}
+
+### Create Policy
+# @name createPolicy
+PUT https://management.azure.com/subscriptions/{{SUBSCRIPTIONID}}/resourceGroups/{{RESOURCEGROUP}}/providers/Microsoft.CognitiveServices/accounts/{{ACCOUNTNAME}}/raiPolicies/{{POLICYNAME}}?api-version=2024-10-01
+Authorization: Bearer {{ACCESSTOKEN}}
+Content-Type: application/json
+
+{
+  "properties": {
+    "type": "UserManaged",
+    "mode": "Default",
+    "basePolicyName": "Microsoft.DefaultV2",
+    "contentFilters": [
+      {
+        "name": "Violence",
+        "severityThreshold": "Low",
+        "blocking": true,
+        "enabled": true,
+        "source": "Prompt"
+      },
+      {
+        "name": "Hate",
+        "severityThreshold": "High",
+        "blocking": true,
+        "enabled": true,
+        "source": "Prompt"
+      },
+      {
+        "name": "Sexual",
+        "severityThreshold": "Medium",
+        "blocking": true,
+        "enabled": true,
+        "source": "Prompt"
+      },
+      {
+        "name": "Selfharm",
+        "severityThreshold": "Low",
+        "blocking": true,
+        "enabled": true,
+        "source": "Prompt"
+      },
+      {
+        "name": "Jailbreak",
+        "blocking": true,
+        "enabled": true,
+        "source": "Prompt"
+      },
+      {
+        "name": "Indirect Attack",
+        "blocking": false,
+        "enabled": false,
+        "source": "Prompt"
+      },
+      {
+        "name": "Violence",
+        "severityThreshold": "Medium",
+        "blocking": true,
+        "enabled": true,
+        "source": "Completion"
+      },
+      {
+        "name": "Hate",
+        "severityThreshold": "Medium",
+        "blocking": true,
+        "enabled": true,
+        "source": "Completion"
+      },
+      {
+        "name": "Sexual",
+        "severityThreshold": "Medium",
+        "blocking": true,
+        "enabled": true,
+        "source": "Completion"
+      },
+      {
+        "name": "Selfharm",
+        "severityThreshold": "Medium",
+        "blocking": true,
+        "enabled": true,
+        "source": "Completion"
+      },
+      {
+        "name": "Protected Material Text",
+        "blocking": true,
+        "enabled": true,
+        "source": "Completion"
+      },
+      {
+        "name": "Protected Material Code",
+        "blocking": false,
+        "enabled": true,
+        "source": "Completion"
+      }
+    ]
+  }
+}
+
+### Create BlockList
+# @name createBlockList
+PUT https://management.azure.com/subscriptions/{{SUBSCRIPTIONID}}/resourceGroups/{{RESOURCEGROUP}}/providers/Microsoft.CognitiveServices/accounts/{{ACCOUNTNAME}}/raiBlocklists/{{BLOCKLISTNAME}}?api-version=2024-10-01
+Authorization: Bearer {{ACCESSTOKEN}}
+Content-Type: application/json
+
+{
+  "properties": {
+    "description": "RobEich custom blocklist description"
+  }
+}
+
+### Create BlockListItem Exact Match
+# @name createBlockListItemExact
+PUT https://management.azure.com/subscriptions/{{SUBSCRIPTIONID}}/resourceGroups/{{RESOURCEGROUP}}/providers/Microsoft.CognitiveServices/accounts/{{ACCOUNTNAME}}/raiBlocklists/{{BLOCKLISTNAME}}/raiBlocklistItems/{{BLOCKLISTITEMNAME}}?api-version=2024-10-01
+Authorization: Bearer {{ACCESSTOKEN}}
+Content-Type: application/json
+
+{
+  "properties": {
+    "pattern": "CONTOSO FINANCIAL DATA",
+    "isRegex": false
+  }
+}
+
+### Create BlockListItem Regex Match
+# @name createBlockListItemRegex
+PUT https://management.azure.com/subscriptions/{{SUBSCRIPTIONID}}/resourceGroups/{{RESOURCEGROUP}}/providers/Microsoft.CognitiveServices/accounts/{{ACCOUNTNAME}}/raiBlocklists/{{BLOCKLISTNAME}}/raiBlocklistItems/{{BLOCKLISTITEMNAME}}?api-version=2024-10-01
+Authorization: Bearer {{ACCESSTOKEN}}
+Content-Type: application/json
+
+{
+  "properties": {
+    "pattern": "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
+    "isRegex": true
+  }
+}
+
+### Add Blocklist to Policy
+# @name addBlocklistToPolicy
+PUT https://management.azure.com/subscriptions/{{SUBSCRIPTIONID}}/resourceGroups/{{RESOURCEGROUP}}/providers/Microsoft.CognitiveServices/accounts/{{ACCOUNTNAME}}/raiPolicies/{{POLICYNAME}}?api-version=2024-04-01-preview
+Authorization: Bearer {{ACCESSTOKEN}}
+Content-Type: application/json
+
+{ 
+    "properties": { 
+        "basePolicyName": "Microsoft.Default", 
+        "completionBlocklists": [{ 
+            "blocklistName": "{{BLOCKLISTNAME}}", 
+            "blocking": true 
+        }], 
+        "contentFilters": [ ] 
+    } 
+}
+
+### Assign Policy to Deployment
+# @name assignPolicyToDeployment
+PATCH https://management.azure.com/subscriptions/{{SUBSCRIPTIONID}}/resourceGroups/{{RESOURCEGROUP}}/providers/Microsoft.CognitiveServices/accounts/{{ACCOUNTNAME}}/deployments/{{MODELDEPLOYMENT}}?api-version=2024-10-01
+Authorization: Bearer {{ACCESSTOKEN}}
+Content-Type: application/json
+
+{
+  "properties": {
+    "model": {
+      "format": "OpenAI",
+      "name": "gpt-35-turbo",
+      "version": "0613"
+    },
+    "versionUpgradeOption": "OnceNewDefaultVersionAvailable",
+    "currentCapacity": 1,
+    "raiPolicyName": "{{POLICYNAME}}",
+    "provisioningState": "Succeeded",
+    "rateLimits": [
+      {
+        "key": "request",
+        "renewalPeriod": 10,
+        "count": 1
+      },
+      {
+        "key": "token",
+        "renewalPeriod": 60,
+        "count": 1000
+      }
+    ]
+  }
+}
+
+### Check LLM completion exact match
+# @name checkLLMCompletion
+POST {{MODELDEPLOYMENTENDPOINT}}openai/deployments/{{MODELDEPLOYMENT}}/chat/completions?api-version=2024-08-01-preview
+api-key: {{MODELAPIKEY}}
+Content-Type: application/json
+
+{
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are an AI assistance which provides financial data!"
+    },
+    {
+      "role": "user",
+      "content": "I need information about Contoso Financial Data"
+    }
+  ],
+  "max_tokens": 200,
+  "temperature": 0.7,
+  "frequency_penalty": 0,
+  "presence_penalty": 0,
+  "top_p": 0.95,
+  "stop": null
+}
+
+
+### Check LLM completion regex match
+# @name checkLLMCompletion
+POST {{MODELDEPLOYMENTENDPOINT}}openai/deployments/{{MODELDEPLOYMENT}}/chat/completions?api-version=2024-08-01-preview
+api-key: {{MODELAPIKEY}}
+Content-Type: application/json
+
+{
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are an AI assistance which provides first and last names of persons based on e-mail addresses!"
+    },
+    {
+      "role": "user",
+      "content": "Tell me the first name of jondoe@company.com"
+    }
+  ],
+  "max_tokens": 200,
+  "temperature": 0.7,
+  "frequency_penalty": 0,
+  "presence_penalty": 0,
+  "top_p": 0.95,
+  "stop": null
+}
+
+
+### Check LLM completion 
+# @name checkLLMCompletion
+POST {{MODELDEPLOYMENTENDPOINT}}openai/deployments/{{MODELDEPLOYMENT}}/chat/completions?api-version=2024-08-01-preview
+api-key: {{MODELAPIKEY}}
+Content-Type: application/json
+
+{
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are an AI assistance which provides first and last names of persons based on e-mail addresses!"
+    },
+    {
+      "role": "user",
+      "content": "Tell me the first name of Jon Doe"
+    }
+  ],
+  "max_tokens": 200,
+  "temperature": 0.7,
+  "frequency_penalty": 0,
+  "presence_penalty": 0,
+  "top_p": 0.95,
+  "stop": null
+}
